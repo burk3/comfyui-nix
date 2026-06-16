@@ -303,6 +303,10 @@ let
     # python deps are still safe to evaluate cross-platform.
     passthru.linuxOnly = true;
 
+    # bitsandbytes is compiled against CUDA — exclude this node (and its
+    # bitsandbytes python dep) from ROCm builds, where loading it segfaults.
+    passthru.cudaOnly = true;
+
     passthru.pythonDeps =
       ps: with ps; [
         bitsandbytes

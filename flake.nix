@@ -137,6 +137,7 @@
           linuxX86PackagesRocm = mkComfyPackages pkgsLinuxX86 { gpuSupport = "rocm"; };
           # Intel XPU (oneAPI / SYCL) — Linux x86_64 only
           linuxX86PackagesXpu = mkComfyPackages pkgsLinuxX86 { gpuSupport = "xpu"; };
+          linuxX86PackagesRocmGfx1151 = mkComfyPackages pkgsLinuxX86 { gpuSupport = "rocm-gfx1151"; };
           linuxArm64Packages = mkComfyPackages pkgsLinuxArm64 { };
 
           nativePackages = mkComfyPackages pkgs { };
@@ -144,6 +145,7 @@
           nativePackagesCuda = mkComfyPackages pkgs { gpuSupport = "cuda"; };
           nativePackagesRocm = mkComfyPackages pkgs { gpuSupport = "rocm"; };
           nativePackagesXpu = mkComfyPackages pkgs { gpuSupport = "xpu"; };
+          nativePackagesRocmGfx1151 = mkComfyPackages pkgs { gpuSupport = "rocm-gfx1151"; };
 
           pythonEnv = mkPythonEnv pkgs;
 
@@ -197,6 +199,7 @@
             dockerImageLinuxCuda = linuxX86PackagesCuda.dockerImageCuda;
             dockerImageLinuxRocm = linuxX86PackagesRocm.dockerImageRocm;
             dockerImageLinuxXpu = linuxX86PackagesXpu.dockerImageXpu;
+            dockerImageLinuxRocmGfx1151 = linuxX86PackagesRocmGfx1151.dockerImageRocm;
             dockerImageLinuxArm64 = linuxArm64Packages.dockerImage;
           }
           // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
@@ -212,6 +215,8 @@
             # Targets Arc A/B series and Core Ultra iGPUs (Meteor Lake+).
             xpu = nativePackagesXpu.default;
             dockerImageXpu = nativePackagesXpu.dockerImageXpu;
+            rocm-gfx1151 = nativePackagesRocmGfx1151.default;
+            dockerImageRocmGfx1151 = nativePackagesRocmGfx1151.dockerImageRocm;
           };
 
           # Expose custom nodes for direct use, plus mkComfyPackages so
@@ -278,6 +283,7 @@
             {
               default = buildShell pythonEnv;
               rocm = buildShell nativePackagesRocm.pythonRuntime;
+              rocm-gfx1151 = buildShell nativePackagesRocmGfx1151.pythonRuntime;
             };
 
           formatter = pkgs.nixfmt-rfc-style;
@@ -318,6 +324,12 @@
               self.packages.${final.stdenv.hostPlatform.system}.xpu
             else
               throw "comfy-ui-xpu is only available on x86_64 Linux";
+          # ROCm gfx1151 variant (x86_64 Linux only) - AMD nightly wheels for Strix Halo APUs
+          comfy-ui-rocm-gfx1151 =
+            if final.stdenv.isLinux && final.stdenv.isx86_64 then
+              self.packages.${final.stdenv.hostPlatform.system}.rocm-gfx1151
+            else
+              throw "comfy-ui-rocm-gfx1151 is only available on x86_64 Linux";
           # Add custom nodes to overlay
           comfyui-custom-nodes = self.legacyPackages.${final.stdenv.hostPlatform.system}.customNodes;
         };

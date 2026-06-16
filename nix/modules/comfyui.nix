@@ -8,7 +8,7 @@ let
   cfg = config.services.comfyui;
 
   useCuda = cfg.gpuSupport == "cuda";
-  useRocm = cfg.gpuSupport == "rocm";
+  useRocm = cfg.gpuSupport == "rocm" || cfg.gpuSupport == "rocm-gfx1151";
   useXpu = cfg.gpuSupport == "xpu";
   useCpu = cfg.gpuSupport == "none";
 
@@ -17,6 +17,8 @@ let
   resolvePackage =
     if useCuda then
       pkgs.comfy-ui-cuda
+    else if cfg.gpuSupport == "rocm-gfx1151" then
+      pkgs.comfy-ui-rocm-gfx1151
     else if useRocm then
       pkgs.comfy-ui-rocm
     else if useXpu then
@@ -85,6 +87,7 @@ in
       type = lib.types.enum [
         "cuda"
         "rocm"
+        "rocm-gfx1151"
         "xpu"
         "none"
       ];
@@ -110,6 +113,12 @@ in
         When selected, uses pre-built PyTorch ROCm wheels based on 7.1. Using
         this configuration, `gfx1100` has been tested as working, but others
         may also work. Requires AMD drivers to be installed on the system.
+
+        ---
+
+        Select `rocm-gfx1151` for AMD gfx1151 GPUs (Strix Halo APUs like Radeon 8060S).
+        Uses AMD's gfx1151-specific PyTorch wheels with native code objects and ROCm 7.12
+        runtime. Automatically sets HSA_OVERRIDE_GFX_VERSION=11.5.1 and HSA_ENABLE_SDMA=0.
 
         ---
 
@@ -159,6 +168,21 @@ in
 
         See: https://developer.nvidia.com/cuda-gpus
       '';
+    };
+
+    rocmOverrideGfxVersion = lib.mkOption {
+      type = lib.types.nullOr (lib.types.strMatching "[0-9]+\\.[0-9]+\\.[0-9]+");
+      default = null;
+      description = ''
+        Override the GPU architecture reported to the ROCm runtime.
+        Set this if your AMD GPU is not natively recognized by the bundled
+        ROCm 7.1 runtime (e.g., newer RDNA architectures).
+
+        This sets the HSA_OVERRIDE_GFX_VERSION environment variable.
+
+        Example: "11.0.0" to emulate gfx1100 on a gfx1151 GPU.
+      '';
+      example = "11.0.0";
     };
 
     enableManager = lib.mkOption {
@@ -376,7 +400,11 @@ in
         (lib.optionalAttrs isDefaultDataDir { StateDirectory = "comfyui"; })
       ];
 
-      environment = env;
+      environment =
+        env
+        // lib.optionalAttrs (cfg.rocmOverrideGfxVersion != null) {
+          HSA_OVERRIDE_GFX_VERSION = cfg.rocmOverrideGfxVersion;
+        };
     };
 
     networking.firewall.allowedTCPPorts = lib.mkIf cfg.openFirewall [ cfg.port ];

@@ -9,13 +9,13 @@
       name,
       tag,
       comfyUiPackage,
-      gpuSupport ? "none", # "none", "cuda", "rocm", "xpu"
+      gpuSupport ? "none", # "none", "cuda", "rocm", "rocm-gfx1151", "xpu"
       cudaVersion ? "cu128",
       extraLabels ? { },
     }:
     let
       useCuda = gpuSupport == "cuda";
-      useRocm = gpuSupport == "rocm";
+      useRocm = gpuSupport == "rocm" || gpuSupport == "rocm-gfx1151";
       useXpu = gpuSupport == "xpu";
       useCpu = gpuSupport == "none";
       baseEnv = [
