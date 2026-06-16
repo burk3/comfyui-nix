@@ -75,6 +75,16 @@ let
           cp -a "$f" $out/lib/
         fi
       done
+      # comgr (libamd_comgr.so) DT_NEEDs the SDK's bundled LLVM at runtime — without
+      # these, dlopen of libamd_comgr.so.3 fails and Triton's implib stub aborts the
+      # whole interpreter. Pull just the two libs comgr links against, not the entire
+      # lib/llvm tree (MLIR/OpenMP/etc.), which the exclusion above deliberately drops.
+      find _tmp/_rocm_sdk_core/lib/llvm/lib \
+        \( -name 'libLLVM.so*' -o -name 'libclang-cpp.so*' \) 2>/dev/null | while read -r f; do
+        if [[ -f "$f" && ! -L "$f" ]]; then
+          cp -a "$f" $out/lib/
+        fi
+      done
       # Copy the host-math libs (librocm-openblas, etc.)
       find _tmp/_rocm_sdk_core/lib/host-math -name '*.so*' 2>/dev/null | while read -r f; do
         if [[ -f "$f" && ! -L "$f" ]]; then
