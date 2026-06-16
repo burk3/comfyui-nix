@@ -182,7 +182,10 @@ let
     # Python dependencies required by ComfyUI-GGUF
     passthru.pythonDeps =
       ps: with ps; [
-        gguf
+        # `ps.gguf` qualified: a bare `gguf` resolves to the lexically-scoped
+        # node derivation of the same name (which shadows `with ps`), not the
+        # Python package — so the gguf lib would silently never enter the env.
+        ps.gguf
         sentencepiece
         protobuf
       ];
@@ -477,7 +480,9 @@ let
         diffusers
         sentencepiece
         protobuf
-        gguf
+        # `ps.gguf` qualified — bare `gguf` would resolve to the node derivation
+        # of the same name, shadowing the Python package. See the gguf node above.
+        ps.gguf
         opencv4
         scipy
         einops
